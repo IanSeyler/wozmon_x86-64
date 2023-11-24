@@ -5,51 +5,43 @@ ORG 0x001E0000
 
 
 start:
-	mov al, [newline]		; Output a newline
+	mov al, newline		; Output a newline
 	call output_char
-	mov al, [prompt]		; Output the prompt
+	mov al, prompt		; Output the prompt
 	call output_char
-	mov al, [newline]		; Output a newline
+	mov al, newline		; Output a newline
 	call output_char
 
 poll:
-	mov rdi, temp_string		; Query for keyboard input
-	mov rcx, 100			; Accept up to 100 chars
+	mov rdi, temp_string	; Query for keyboard input
+	mov rcx, 100		; Accept up to 100 chars
 	call input
-
-	jrcxz poll			; input stores the number of characters received in RCX
+	jrcxz poll		; input stores the number of characters received in RCX
 	mov rsi, rdi
 	call hex_string_to_int
-
-	call dump_rax
-	push rsi
-	push rcx
-	mov rcx, 1
-	mov rsi, colon
-	call [b_output]
-	mov rsi, space
-	call [b_output]
-	pop rcx
-	pop rsi
 	mov rsi, rax
+	call dump_rax
+	mov al, colon		; Output a newline
+	call output_char
+	mov al, space		; Output a newline
+	call output_char
 	lodsb
 	call dump_al
-	mov rsi, newline		; Output a newline
-	call output
-	mov rsi, newline		; Output a newline
-	call output
+	mov al, newline		; Output a newline
+	call output_char
+	mov al, newline		; Output a newline
+	call output_char
 
 	jmp poll
 
 
-; Strings
-
-prompt:			db '\'
-newline:		db 0x0A
-eol:			db 0x00
-colon:			db ':'
-space:			db 0x20
-backspace:		db 0x08
+; Constants
+prompt		equ '\'
+newline		equ 0x0A
+eol		equ 0x00
+colon		equ ':'
+space		equ 0x20
+backspace	equ 0x08
 
 
 ; -----------------------------------------------------------------------------
@@ -81,12 +73,7 @@ input_process:
 	cmp rcx, rdx			; Check if we have reached the max number of chars
 	je input_more			; Jump if we have (should beep as well)
 	stosb				; Store AL at RDI and increment RDI by 1
-	push rsi
-	mov rsi, rdi
-	sub rsi, 1
-	mov rcx, 1
-	call [b_output]			; Display char
-	pop rsi
+	call output_char
 	inc rcx				; Increment the counter
 	jmp input_more
 
@@ -95,17 +82,12 @@ input_backspace:
 	jz input_more
 	dec rcx
 	dec rdi
-	push rsi
-	push rcx
-	mov rsi, backspace
-	mov rcx, 1
-	call [b_output]			; Display char
-	mov rsi, space
-	call [b_output]			; Display char
-	mov rsi, backspace
-	call [b_output]			; Display char	
-	pop rcx
-	pop rsi
+	mov al, backspace
+	call output_char
+	mov al, space
+	call output_char
+	mov al, backspace
+	call output_char
 	jmp input_more
 
 input_halt:
@@ -116,8 +98,8 @@ input_halt:
 
 input_done:
 	xor al, al
-	stosb				; We NULL terminate the string
-	mov al, [newline]
+	stosb				; NULL terminate the string
+	mov al, newline
 	call output_char
 
 	pop rax
