@@ -21,9 +21,9 @@ The BareMetal kernel uses the first 2MiB of RAM. Wozmon runs within the BareMeta
 
 ## Usage
 
-* On startup a `\\` will be displayed
+* On startup a `\` will be displayed.
 
-* Wozmon will intrepret any hexadecimal value as a memory address. Wozmon will display the memory address and the 8-bit value at that address.
+* Wozmon will interpret any hexadecimal value as a memory address. Wozmon will display the memory address and the 8-bit value at that address.
 
 ```
 1E0000
@@ -33,8 +33,7 @@ The BareMetal kernel uses the first 2MiB of RAM. Wozmon runs within the BareMeta
 * Entering a hexadecimal value followed by a ':' will allow you to write bytes starting at that memory address.
 
 ```
-FFFF800000000000:
-
+FFFF800000000000: C3
 ```
 
 * Entering `R` will run the code at the last provided address.
