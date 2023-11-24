@@ -3,51 +3,101 @@ ORG 0x001E0000
 
 %include 'api/libBareMetal.asm'
 
+RESET:
+	cld			; Clear direction flag
+	mov al, escape		; Set so NOTCR sends us to ESCAPE
+	xor rcx, rcx		; character counter
 
-start:
-	mov al, newline		; Output a newline
+NOTCR:
+	cmp al, backspace_key	; Backspace?
+	je BACKSPACE		; Yes.
+	cmp al, escape		; ESC?
+	je ESCAPE		; Yes.
+	inc cl			; Advance text index.
+	cmp al, 127		; Auto ESC if > 127.
+	jl NEXTCHAR
+	
+ESCAPE:
+	mov al, prompt		; "\"
+	call output_char	; Output it.
+
+GETLINE:
+	mov al, newline		; CR.
+	call output_char	; Output it.
+	mov rdi, temp_string	; location of input
+	mov cl, 1		; Initialize text index.
+
+BACKSPACE:
+	dec cl			; Back up text index.
+	test cl, cl		; backspace at the beginning? get a new char
+	jz NEXTCHAR
+	dec rdi
+
+	mov al, backspace
 	call output_char
-	mov al, prompt		; Output the prompt
+	mov al, space
 	call output_char
-	mov al, newline		; Output a newline
+	mov al, backspace
 	call output_char
 
-poll:
-	mov rdi, temp_string	; Query for keyboard input
-	mov rcx, 100		; Accept up to 100 chars
-	call input
-	jrcxz poll		; input stores the number of characters received in RCX
-	mov rsi, rdi
-	call hex_string_to_int
-	mov rsi, rax
-	call dump_rax
-	mov al, colon		; Output a newline
-	call output_char
-	mov al, space		; Output a newline
-	call output_char
-	lodsb
-	call dump_al
-	mov al, newline		; Output a newline
-	call output_char
-	mov al, newline		; Output a newline
-	call output_char
+NEXTCHAR:
+	call [b_input]		; Key ready?
+	jnc NEXTCHAR		; Loop until ready.
+				; Keystroke is already in AL
+	mov [rdi+rcx], al			; Add to text buffer.
+	call output_char	; Display character.
 
-	jmp poll
+	inc rcx
+	cmp al, enter_key	; CR?
+	jne NOTCR		; No.
+
+	; The next two lines are only needed for calling output below
+	mov al, 0x00		; Null terminate the string
+	mov [rdi+rcx], al ;stosb
+
+; Line received
+
+	; DEBUG Display it for now
+	mov rsi, temp_string
+	call output
+	jmp GETLINE
+
+SETSTOR:
+SETMODE:
+BLSKIP:
+NEXTITEM:
+NEXTHEX:
+DIG:
+HEXSHIFT:
+NOTHEX:
+TONEXTITEM:
+RUN:
+NOTSTOR:
+SETADR:
+NXTPRNT:
+	mov al, ':'		; ":".
+	call output_char	; Output it.
+PRDATA:
+	mov al, ' '		; Blank.
+	call output_char	; Output it.
+XAMNEXT:
+MOD8CHK:
+	jmp NXTPRNT		; Always taken.
 
 PRBYTE:
-	push ax			; Save AL for the next nibble
-	shr al, 4		; Shift the upper 4 bits into the lower 4 (replaces 4 LSR opcodes on the 6502)
-	call PRHEX		; Output the hex digit
-	pop ax			; Restore AL
+	push ax			; Save AL for LSD
+	shr al, 4		; MSD to LSD position. This replaces 4 LSR opcodes on the 6502
+	call PRHEX		; Output hex digit.
+	pop ax			; Restore AL.
 PRHEX:
-	and al, 0x0F		; Keep only the lower 4 bits
-	or al, '0'		; Add '0'
-	cmp al, '9'+1		; Is it a digit?
-	jl ECHO			; If so, output it
-	add al, 7		; Add offset for hex letter (A-F)
+	and al, 0x0F		; Mask LSD for hex print.
+	or al, '0'		; Add "0".
+	cmp al, '9'+1		; Digit?
+	jl ECHO			; Yes, output it.
+	add al, 7		; Add offset for character.
 ECHO:
-	call output_char	; Output the character
-	ret			; Return
+	call output_char	; Output character.
+	ret			; Return.
 
 ; Constants
 prompt		equ '\'
@@ -56,71 +106,9 @@ eol		equ 0x00
 colon		equ ':'
 space		equ 0x20
 backspace	equ 0x08
-
-
-; -----------------------------------------------------------------------------
-; input -- Take string from keyboard entry
-;  IN:	RDI = location where string will be stored
-;	RCX = maximum number of characters to accept
-; OUT:	RCX = length of string that was received (NULL not counted)
-;	All other registers preserved
-input:
-	push rdi
-	push rdx			; Counter to keep track of max accepted characters
-	push rax
-
-	mov rdx, rcx			; Max chars to accept
-	xor ecx, ecx			; Offset from start
-
-input_more:
-	call [b_input]
-	jnc input_halt			; No key entered... halt until an interrupt is received
-input_process:
-	cmp al, 0x1C			; If Enter key pressed, finish
-	je input_done
-	cmp al, 0x0E			; Backspace
-	je input_backspace
-	cmp al, 32			; In ASCII range (32 - 126)?
-	jl input_more
-	cmp al, 126
-	jg input_more
-	cmp rcx, rdx			; Check if we have reached the max number of chars
-	je input_more			; Jump if we have (should beep as well)
-	stosb				; Store AL at RDI and increment RDI by 1
-	call output_char
-	inc rcx				; Increment the counter
-	jmp input_more
-
-input_backspace:
-	test rcx, rcx			; backspace at the beginning? get a new char
-	jz input_more
-	dec rcx
-	dec rdi
-	mov al, backspace
-	call output_char
-	mov al, space
-	call output_char
-	mov al, backspace
-	call output_char
-	jmp input_more
-
-input_halt:
-	hlt				; Halt until an interrupt is received
-	call [b_input]			; Check if the interrupt was because of a keystroke
-	jnc input_halt			; If not, halt again
-	jmp input_process
-
-input_done:
-	xor al, al
-	stosb				; NULL terminate the string
-	mov al, newline
-	call output_char
-
-	pop rax
-	pop rdx
-	pop rdi
-	ret
-; -----------------------------------------------------------------------------
+escape		equ 0x1B
+enter_key	equ 0x1C
+backspace_key	equ 0x0E
 
 
 ; -----------------------------------------------------------------------------
@@ -248,17 +236,11 @@ dump_al:
 	push rax			; Save RAX since we work in 2 parts
 	shr al, 4			; Shift high 4 bits into low 4 bits
 	xlatb
-	mov [tchar+0], al
+	call output_char
 	pop rax
 	and al, 0x0f			; Clear the high 4 bits
 	xlatb
-	mov [tchar+1], al
-	push rsi
-	push rcx
-	mov rsi, tchar
-	call output
-	pop rcx
-	pop rsi
+	call output_char
 	pop rax
 	pop rbx
 	ret
