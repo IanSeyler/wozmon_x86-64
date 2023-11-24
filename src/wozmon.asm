@@ -34,6 +34,20 @@ poll:
 
 	jmp poll
 
+PRBYTE:
+	push ax			; Save AL for the next nibble
+	shr al, 4		; Shift the upper 4 bits into the lower 4 (replaces 4 LSR opcodes on the 6502)
+	call PRHEX		; Output the hex digit
+	pop ax			; Restore AL
+PRHEX:
+	and al, 0x0F		; Keep only the lower 4 bits
+	or al, '0'		; Add '0'
+	cmp al, '9'+1		; Is it a digit?
+	jl ECHO			; If so, output it
+	add al, 7		; Add offset for hex letter (A-F)
+ECHO:
+	call output_char	; Output the character
+	ret			; Return
 
 ; Constants
 prompt		equ '\'
