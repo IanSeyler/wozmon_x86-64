@@ -31,7 +31,6 @@ BACKSPACE:
 	dec cl			; Back up text index.
 	test cl, cl		; backspace at the beginning? get a new char
 	jz NEXTCHAR
-	dec rdi
 
 	mov al, backspace
 	call output_char
@@ -47,7 +46,6 @@ NEXTCHAR:
 	mov [rdi+rcx], al			; Add to text buffer.
 	call output_char	; Display character.
 
-	inc rcx
 	cmp al, enter_key	; CR?
 	jne NOTCR		; No.
 
