@@ -6,6 +6,9 @@
 ; X = RBX
 ; Y = RCX
 ; Variable XAM = RSI
+;
+; Notes - Capital letter are expected for input
+; The original variables XAML and XAMH are not used
 
 
 BITS 64
@@ -98,37 +101,57 @@ NEXTHEX:
 	add al, 0x89		; Map letter "A"-"F" to $FA-$FF
 	cmp al, 0xFA		; Hex letter?
 	jc NOTHEX		; No, character not hex.
+
+	; To be removed
+	and al, 0x0F
 DIG:
-;	shl al, 4		; Hex digit to MSD of A
-;	mov bx, 0x04		; Shift count.
 	; Debug
 	call dump_al
+
+	shl al, 4		; Hex digit to MSD of A
+	mov bx, 0x04		; Shift count.
 HEXSHIFT:
+				; Hex digit left, MSB to carry.
+				; Rotate into LSD.
+				; Rotate into MSD's.
+				; Done 4 shifts?
+				; No, loop.
 	inc cl			; Advance text index.
 	jmp NEXTHEX		; Always taken. Check next character for hex.
 NOTHEX:
 	cmp cl, byte [YSAV]	; Check if L, H empty (no hex digits).
 	je ESCAPE		; Yes, generate ESC sequence.
+				; Test MODE byte.
+				; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
+				; LSD's of hex data.
+				; Store at current 'store index'
+				; Increment store index.
+				; Get next item. (no carry).
+				; Add carry to 'store index' high order.
 
 TONEXTITEM:
-	jmp NEXTITEM
+	jmp NEXTITEM		; Get next command item.
 
 RUN:
 ;	call [XAM]		; Run at current XAM index.
 NOTSTOR:
-
+				; B7 = 0 for XAM, 1 for BLOCK XAM
+				; Byte count.
 SETADR:
-
+				; Copy hex data to
+				; 'store index'.
+				; And to 'XAM index'.
+				; Next of 2 bytes.
+				; Loop unless X = 0.
 NXTPRNT:
 	jne PRDATA		; NE means no address to print.
 	mov al, newline		; CR.
 	call ECHO		; Output it.
-;	mov al, byte [XAMH]	; 'Examine index' high-order byte
-;	call PRBYTE		; Output it in hex format.
-;	mov al, byte [XAML]	; Low-order 'examine index' byte
-;	call PRBYTE		; Output it in hex format.
-	mov rax, [XAM]		; 'Examine index'
+	; The next 4 lines differ due to running with 64-bit addresses
+	mov rax, [XAM]		; 'Examine index' high-order byte
 	call dump_rax		; Output it in hex format.
+				; Low-order 'examine index' byte
+				; Output it in hex format.
 	mov al, ':'		; ":".
 	call ECHO		; Output it.
 PRDATA:
@@ -137,6 +160,10 @@ PRDATA:
 	mov al, byte [rsi+rbx]	; Get data byte at `examine index`
 	call PRBYTE		; Output it in hex format.
 XAMNEXT:
+				; 0 -> MODE (XAM mode).
+				; Compare 'examine index' to hex data.
+				; Not less, so no more data to output.
+				; Increment 'examine index'.
 
 MOD8CHK:
 	mov rax, [XAM]		; Check low-order 'examine index' byte
@@ -144,10 +171,11 @@ MOD8CHK:
 	jmp NXTPRNT		; Always taken.
 
 PRBYTE:
-	push ax			; Save AL for LSD
-	shr al, 4		; MSD to LSD position. This replaces 4 LSR opcodes on the 6502
+	push ax			; Save A for LSD.
+	; This replaces 4 LSR opcodes on the 6502
+	shr al, 4		; MSD to LSD position.
 	call PRHEX		; Output hex digit.
-	pop ax			; Restore AL.
+	pop ax			; Restore A.
 PRHEX:
 	and al, 0x0F		; Mask LSD for hex print.
 	or al, '0'		; Add "0".
