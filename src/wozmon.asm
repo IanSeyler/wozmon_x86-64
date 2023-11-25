@@ -17,6 +17,14 @@ ORG 0x001E0000
 %include 'api/libBareMetal.asm'
 
 RESET:
+				; Clear decimal arithmetic mode.
+				;
+				; Mask for DSP data direction register.
+				; Set it up.
+				; KBD and DSP control register mask.
+				; Enable interrupt, set CA1, CB1, for
+				; positive edge sense/output mode.
+
 	; The next lines are all we need for the RESET on x86-64
 	cld			; Clear direction flag
 	mov al, escape		; Set so NOTCR sends us to ESCAPE
@@ -42,6 +50,7 @@ GETLINE:
 BACKSPACE:
 	dec cl			; Back up text index.
 	js GETLINE		; Beyond start of line, reinitialize.
+
 	; The next six lines are just for BareMetal
 	mov al, backspace	; Move back by one character
 	call output_char
@@ -53,14 +62,14 @@ BACKSPACE:
 NEXTCHAR:
 	call [b_input]		; Key ready?
 	jnc NEXTCHAR		; Loop until ready.
-	; No instruction needed	; Load character. B7 should be '1'.
+				; Load character. B7 should be '1'.
 	mov [rdi+rcx], al	; Add to text buffer.
 	call ECHO		; Display character.
 	cmp al, enter_key	; CR?
 	jne NOTCR		; No.
 
 ; DEBUG Start - This just echos what was input
-;	mov al, 0x00		; Null terminate the string
+;	mov al, 0x00
 ;	mov [rdi+rcx], al
 ;	mov rsi, temp_string
 ;	call output
@@ -111,7 +120,7 @@ DIG:
 	shl al, 4		; Hex digit to MSD of A
 	mov bx, 0x04		; Shift count.
 HEXSHIFT:
-				; Hex digit left, MSB to carry.
+	shl al, 1		; Hex digit left, MSB to carry.
 				; Rotate into LSD.
 				; Rotate into MSD's.
 				; Done 4 shifts?
@@ -172,7 +181,6 @@ MOD8CHK:
 
 PRBYTE:
 	push ax			; Save A for LSD.
-	; This replaces 4 LSR opcodes on the 6502
 	shr al, 4		; MSD to LSD position.
 	call PRHEX		; Output hex digit.
 	pop ax			; Restore A.
@@ -183,6 +191,8 @@ PRHEX:
 	jl ECHO			; Yes, output it.
 	add al, 7		; Add offset for character.
 ECHO:
+				; DA bit (B7) cleared yet?
+				; No, wait for display.
 	call output_char	; Output character.
 	ret			; Return.
 
