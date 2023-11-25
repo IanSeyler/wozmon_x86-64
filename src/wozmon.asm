@@ -13,7 +13,7 @@ ORG 0x001E0000
 %include 'api/libBareMetal.asm'
 
 RESET:
-	; The lines are all we need for the RESET on x86-64
+	; The next lines are all we need for the RESET on x86-64
 	cld			; Clear direction flag
 	mov al, escape		; Set so NOTCR sends us to ESCAPE
 	mov rdi, temp_string	; location of input
