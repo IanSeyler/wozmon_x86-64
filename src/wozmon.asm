@@ -83,7 +83,7 @@ NEXTCHAR:
 	mov bx, ax		; 0 -> X.
 
 SETSTOR:
-	shl al, 1		; LEAVES $7B if setting STOR mode
+	shl al, 1		; Leaves $7B if setting STOR mode
 SETMODE:
 	mov [MODE], al		; $00 = XAM, $7B = STOR, $AE = BLOK XAM
 BLSKIP:
@@ -99,8 +99,8 @@ NEXTITEM:
 	je SETSTOR		; Yes, set STOR mode.
 	cmp al, 'r'		; "R"?
 	je RUN			; Yes, run user program.
-;	mov [L], bl		; $0 -> L.
-;	mov [H], bl		; and H.
+	mov [L], bl		; $0 -> L.
+	mov [H], bl		; and H.
 	mov [YSAV], cl		; Save Y for comparison.
 NEXTHEX:
 	mov al, [rdi+rcx]	; Get character for hex test.
@@ -121,18 +121,18 @@ DIG:
 	mov bx, 0x04		; Shift count.
 HEXSHIFT:
 	shl al, 1		; Hex digit left, MSB to carry.
-				; Rotate into LSD.
-				; Rotate into MSD's.
-				; Done 4 shifts?
-				; No, loop.
+	rol byte [L], 1		; Rotate into LSD.
+	rol byte [H], 1		; Rotate into MSD's.
+	dec bl			; Done 4 shifts?
+	jne HEXSHIFT		; No, loop.
 	inc cl			; Advance text index.
 	jmp NEXTHEX		; Always taken. Check next character for hex.
 NOTHEX:
 	cmp cl, byte [YSAV]	; Check if L, H empty (no hex digits).
 	je ESCAPE		; Yes, generate ESC sequence.
 				; Test MODE byte.
-				; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
-				; LSD's of hex data.
+	jmp NOTSTOR		; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
+	mov al, [L]		; LSD's of hex data.
 				; Store at current 'store index'
 				; Increment store index.
 				; Get next item. (no carry).
@@ -145,7 +145,7 @@ RUN:
 ;	call [XAM]		; Run at current XAM index.
 NOTSTOR:
 				; B7 = 0 for XAM, 1 for BLOCK XAM
-				; Byte count.
+	mov bx, 0x02		; Byte count.
 SETADR:
 				; Copy hex data to
 				; 'store index'.
@@ -170,9 +170,13 @@ PRDATA:
 	call PRBYTE		; Output it in hex format.
 XAMNEXT:
 				; 0 -> MODE (XAM mode).
+	mov al, [XAML]
 				; Compare 'examine index' to hex data.
+	mov al, [XAMH]
 				; Not less, so no more data to output.
-				; Increment 'examine index'.
+	inc byte [XAML]
+	jne MOD8CHK		; Increment 'examine index'.
+	inc byte [XAMH]
 
 MOD8CHK:
 	mov rax, [XAM]		; Check low-order 'examine index' byte
