@@ -1,12 +1,22 @@
+; wozmon x86-64
+; Converted by Ian Seyler (ian@seyler.me)
+;
+; 6502 to x86-64 register mapping
+; A = AL
+; X = BX
+; Y = CX
+
+
 BITS 64
 ORG 0x001E0000
 
 %include 'api/libBareMetal.asm'
 
 RESET:
-	; The next two lines are all we need for the RESET on x86-64
+	; The lines are all we need for the RESET on x86-64
 	cld			; Clear direction flag
 	mov al, escape		; Set so NOTCR sends us to ESCAPE
+	mov rdi, temp_string	; location of input
 
 NOTCR:
 	cmp al, backspace_key	; Backspace?
@@ -15,15 +25,14 @@ NOTCR:
 	je ESCAPE		; Yes.
 	inc cl			; Advance text index.
 	jns NEXTCHAR		; Auto ESC if > 127.
-	
+
 ESCAPE:
 	mov al, prompt		; "\"
-	call output_char	; Output it.
+	call ECHO		; Output it.
 
 GETLINE:
 	mov al, newline		; CR.
-	call output_char	; Output it.
-	mov rdi, temp_string	; location of input
+	call ECHO		; Output it.
 	mov cl, 1		; Initialize text index.
 
 BACKSPACE:
@@ -40,43 +49,77 @@ BACKSPACE:
 NEXTCHAR:
 	call [b_input]		; Key ready?
 	jnc NEXTCHAR		; Loop until ready.
-				; Keystroke is already in AL
+	; No instruction needed	; Load character. B7 should be '1'.
 	mov [rdi+rcx], al	; Add to text buffer.
-	call output_char	; Display character.
-
+	call ECHO		; Display character.
 	cmp al, enter_key	; CR?
 	jne NOTCR		; No.
 
-	; The next two lines are only needed for calling output below
+; DEBUG Start
 	mov al, 0x00		; Null terminate the string
 	mov [rdi+rcx], al
-
-; Line received
-
-	; DEBUG Display it for now
 	mov rsi, temp_string
 	call output
 	jmp GETLINE
+; DEBUG end
+
+; Here be dragons!
+
+	mov cl, 0xFF		; Reset text index.
+	mov al, 0x00		; For XAM mode.
+	mov bx, ax		; 0 -> X.
 
 SETSTOR:
+	shl al, 1		; LEAVES $7B if setting STOR mode
 SETMODE:
+	mov [MODE], al		; $00 = XAM, $7B = STOR, $AE = BLOK XAM
 BLSKIP:
+	inc cl			; Advance text index.
 NEXTITEM:
+	mov al, [rdi+rcx]	; Get character.
+	cmp al, enter_key	; CR?
+	je GETLINE		; Yes, done this line.
+	cmp al, '.'		; "."?
+				; Skip delimiter.
+	je SETMODE		; Set BLOCK XAM mode.
+	cmp al, ':'		; ":"?
+	je SETSTOR		; Yes, set STOR mode.
+	cmp al, 'r'		; "R"?
+	je RUN			; Yes, run user program.
+				; $0 -> L.
+				; and H.
+				; Save Y for comparison.
 NEXTHEX:
+	mov al, [rdi+rcx]	; Get character for hex test.
+	xor al, 0xB0		; Map digits $0-9
+	cmp al, 0x0A		; Digit?
+	jnc DIG			; Yes.
+	add al, 0x88		; Map letter "A"-"F" to $FA-$FF
+	cmp al, 0xFA		; Hex letter?
+	jmp NOTHEX		; No, character not hex.
 DIG:
+	shl al, 4		; Hex digit to MSD of A
+	mov bx, 0x04		; Shift count.
 HEXSHIFT:
+
 NOTHEX:
+
 TONEXTITEM:
+
 RUN:
+
 NOTSTOR:
+
 SETADR:
+
 NXTPRNT:
 	mov al, ':'		; ":".
-	call output_char	; Output it.
+	call ECHO		; Output it.
 PRDATA:
 	mov al, ' '		; Blank.
-	call output_char	; Output it.
+	call ECHO		; Output it.
 XAMNEXT:
+
 MOD8CHK:
 	jmp NXTPRNT		; Always taken.
 
@@ -94,6 +137,17 @@ PRHEX:
 ECHO:
 	call output_char	; Output character.
 	ret			; Return.
+
+align 16
+; Variables
+XAML		db 0x00
+XAMH		db 0x00
+STL		db 0x00
+STH		db 0x00
+L		db 0x00
+H		db 0x00
+YSAV		db 0x00
+MODE		db 0x00
 
 ; Constants
 prompt		equ '\'
