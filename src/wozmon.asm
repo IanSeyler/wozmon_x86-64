@@ -4,9 +4,9 @@ ORG 0x001E0000
 %include 'api/libBareMetal.asm'
 
 RESET:
+	; The next two lines are all we need for the RESET on x86-64
 	cld			; Clear direction flag
 	mov al, escape		; Set so NOTCR sends us to ESCAPE
-	xor rcx, rcx		; character counter
 
 NOTCR:
 	cmp al, backspace_key	; Backspace?
@@ -14,8 +14,7 @@ NOTCR:
 	cmp al, escape		; ESC?
 	je ESCAPE		; Yes.
 	inc cl			; Advance text index.
-	cmp al, 127		; Auto ESC if > 127.
-	jl NEXTCHAR
+	jns NEXTCHAR		; Auto ESC if > 127.
 	
 ESCAPE:
 	mov al, prompt		; "\"
@@ -29,21 +28,20 @@ GETLINE:
 
 BACKSPACE:
 	dec cl			; Back up text index.
-	test cl, cl		; backspace at the beginning? get a new char
-	jz NEXTCHAR
-
+	js GETLINE		; Beyond start of line, reinitialize.
+	; The next six lines are just for BareMetal
+	mov al, backspace	; Move back by one character
+	call output_char
+	mov al, space		; Overwrite the old character with a space
+	call output_char
 	mov al, backspace
-	call output_char
-	mov al, space
-	call output_char
-	mov al, backspace
-	call output_char
+	call output_char	; Move back by one character again
 
 NEXTCHAR:
 	call [b_input]		; Key ready?
 	jnc NEXTCHAR		; Loop until ready.
 				; Keystroke is already in AL
-	mov [rdi+rcx], al			; Add to text buffer.
+	mov [rdi+rcx], al	; Add to text buffer.
 	call output_char	; Display character.
 
 	cmp al, enter_key	; CR?
@@ -51,7 +49,7 @@ NEXTCHAR:
 
 	; The next two lines are only needed for calling output below
 	mov al, 0x00		; Null terminate the string
-	mov [rdi+rcx], al ;stosb
+	mov [rdi+rcx], al
 
 ; Line received
 
@@ -247,6 +245,7 @@ dump_al:
 
 hextable: db '0123456789ABCDEF'
 tchar: db 0, 0, 0
+align 16
 temp_string: db 0
 
 ; =============================================================================
