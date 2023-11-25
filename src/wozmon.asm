@@ -3,8 +3,9 @@
 ;
 ; 6502 to x86-64 register mapping
 ; A = AL
-; X = BX
-; Y = CX
+; X = RBX
+; Y = RCX
+; Variable XAM = RSI
 
 
 BITS 64
@@ -16,7 +17,7 @@ RESET:
 	; The next lines are all we need for the RESET on x86-64
 	cld			; Clear direction flag
 	mov al, escape		; Set so NOTCR sends us to ESCAPE
-	mov rdi, temp_string	; location of input
+	mov rdi, temp_string	; Base address of input (IN)
 
 NOTCR:
 	cmp al, backspace_key	; Backspace?
@@ -33,7 +34,7 @@ ESCAPE:
 GETLINE:
 	mov al, newline		; CR.
 	call ECHO		; Output it.
-	mov cl, 1		; Initialize text index.
+	mov rcx, 1		; Initialize text index.
 
 BACKSPACE:
 	dec cl			; Back up text index.
@@ -55,12 +56,12 @@ NEXTCHAR:
 	cmp al, enter_key	; CR?
 	jne NOTCR		; No.
 
-; DEBUG Start
-	mov al, 0x00		; Null terminate the string
-	mov [rdi+rcx], al
-	mov rsi, temp_string
-	call output
-	jmp GETLINE
+; DEBUG Start - This just echos what was input
+;	mov al, 0x00		; Null terminate the string
+;	mov [rdi+rcx], al
+;	mov rsi, temp_string
+;	call output
+;	jmp GETLINE
 ; DEBUG end
 
 ; Here be dragons!
@@ -80,47 +81,66 @@ NEXTITEM:
 	cmp al, enter_key	; CR?
 	je GETLINE		; Yes, done this line.
 	cmp al, '.'		; "."?
-				; Skip delimiter.
+	jc BLSKIP		; Skip delimiter.
 	je SETMODE		; Set BLOCK XAM mode.
 	cmp al, ':'		; ":"?
 	je SETSTOR		; Yes, set STOR mode.
 	cmp al, 'r'		; "R"?
 	je RUN			; Yes, run user program.
-				; $0 -> L.
-				; and H.
-				; Save Y for comparison.
+;	mov [L], bl		; $0 -> L.
+;	mov [H], bl		; and H.
+	mov [YSAV], cl		; Save Y for comparison.
 NEXTHEX:
 	mov al, [rdi+rcx]	; Get character for hex test.
-	xor al, 0xB0		; Map digits $0-9
+	xor al, 0x30		; Map digits $0-9
 	cmp al, 0x0A		; Digit?
-	jnc DIG			; Yes.
-	add al, 0x88		; Map letter "A"-"F" to $FA-$FF
+	jl DIG			; Yes.
+	add al, 0x89		; Map letter "A"-"F" to $FA-$FF
 	cmp al, 0xFA		; Hex letter?
-	jmp NOTHEX		; No, character not hex.
+	jc NOTHEX		; No, character not hex.
 DIG:
-	shl al, 4		; Hex digit to MSD of A
-	mov bx, 0x04		; Shift count.
+;	shl al, 4		; Hex digit to MSD of A
+;	mov bx, 0x04		; Shift count.
+	; Debug
+	call dump_al
 HEXSHIFT:
-
+	inc cl			; Advance text index.
+	jmp NEXTHEX		; Always taken. Check next character for hex.
 NOTHEX:
+	cmp cl, byte [YSAV]	; Check if L, H empty (no hex digits).
+	je ESCAPE		; Yes, generate ESC sequence.
 
 TONEXTITEM:
+	jmp NEXTITEM
 
 RUN:
-
+;	call [XAM]		; Run at current XAM index.
 NOTSTOR:
 
 SETADR:
 
 NXTPRNT:
+	jne PRDATA		; NE means no address to print.
+	mov al, newline		; CR.
+	call ECHO		; Output it.
+;	mov al, byte [XAMH]	; 'Examine index' high-order byte
+;	call PRBYTE		; Output it in hex format.
+;	mov al, byte [XAML]	; Low-order 'examine index' byte
+;	call PRBYTE		; Output it in hex format.
+	mov rax, [XAM]		; 'Examine index'
+	call dump_rax		; Output it in hex format.
 	mov al, ':'		; ":".
 	call ECHO		; Output it.
 PRDATA:
 	mov al, ' '		; Blank.
 	call ECHO		; Output it.
+	mov al, byte [rsi+rbx]	; Get data byte at `examine index`
+	call PRBYTE		; Output it in hex format.
 XAMNEXT:
 
 MOD8CHK:
+	mov rax, [XAM]		; Check low-order 'examine index' byte
+	and al, 0x07		; For MOD 8 = 0
 	jmp NXTPRNT		; Always taken.
 
 PRBYTE:
@@ -140,6 +160,7 @@ ECHO:
 
 align 16
 ; Variables
+XAM		dq 0x0000000000000000
 XAML		db 0x00
 XAMH		db 0x00
 STL		db 0x00
@@ -148,6 +169,7 @@ L		db 0x00
 H		db 0x00
 YSAV		db 0x00
 MODE		db 0x00
+
 
 ; Constants
 prompt		equ '\'
@@ -280,27 +302,15 @@ dump_ax:
 	call dump_al
 	rol ax, 8
 dump_al:
-	push rbx
-	push rax
-	mov rbx, hextable
-	push rax			; Save RAX since we work in 2 parts
-	shr al, 4			; Shift high 4 bits into low 4 bits
-	xlatb
-	call output_char
-	pop rax
-	and al, 0x0f			; Clear the high 4 bits
-	xlatb
-	call output_char
-	pop rax
-	pop rbx
+	call PRBYTE
 	ret
 ; -----------------------------------------------------------------------------
 
 
-hextable: db '0123456789ABCDEF'
-tchar: db 0, 0, 0
+tchar: db 0, 0, 0		; Used by output_char
+
 align 16
-temp_string: db 0
+temp_string:
 
 ; =============================================================================
 ; EOF
