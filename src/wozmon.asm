@@ -38,6 +38,8 @@ NOTCR:
 	jns NEXTCHAR		; Auto ESC if > 127.
 
 ESCAPE:
+	mov al, newline
+	call ECHO
 	mov al, prompt		; "\"
 	call ECHO		; Output it.
 
@@ -116,9 +118,6 @@ NEXTHEX:
 	; To be removed
 ;	and al, 0x0F
 DIG:
-	; Debug
-;	call dump_al
-
 	shl al, 4		; Hex digit to MSD of A
 	mov bx, 0x04		; Shift count.
 HEXSHIFT:
@@ -135,8 +134,9 @@ NOTHEX:
 	cmp cl, byte [YSAV]	; Check if L, H empty (no hex digits).
 	je ESCAPE		; Yes, generate ESC sequence.
 				; Test MODE byte.
+	; TODO conditional jump
 	jmp NOTSTOR		; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
-	mov al, [L]		; LSD's of hex data.
+	mov al, dl;[L]		; LSD's of hex data.
 				; Store at current 'store index'
 				; Increment store index.
 				; Get next item. (no carry).
@@ -148,7 +148,7 @@ TONEXTITEM:
 RUN:
 ;	call [XAM]		; Run at current XAM index.
 NOTSTOR:
-				; B7 = 0 for XAM, 1 for BLOCK XAM
+	jmp XAMNEXT		; B7 = 0 for XAM, 1 for BLOCK XAM
 	mov bx, 0x02		; Byte count.
 SETADR:
 				; Copy hex data to
@@ -157,7 +157,9 @@ SETADR:
 				; Next of 2 bytes.
 				; Loop unless X = 0.
 NXTPRNT:
-	jne PRDATA		; NE means no address to print.
+;	jne PRDATA		; NE means no address to print.
+	mov al, newline
+	call ECHO
 	mov al, newline		; CR.
 	call ECHO		; Output it.
 	; The next 4 lines differ due to running with 64-bit addresses
@@ -170,21 +172,25 @@ NXTPRNT:
 PRDATA:
 	mov al, ' '		; Blank.
 	call ECHO		; Output it.
-	mov al, byte [rsi+rbx]	; Get data byte at `examine index`
+	mov al, byte [rdx+rbx]	; Get data byte at `examine index`
 	call PRBYTE		; Output it in hex format.
+	jmp GETLINE
 XAMNEXT:
 				; 0 -> MODE (XAM mode).
-	mov al, [XAML]
+;	mov al, [rdx]
+;	inc rdx
+;	mov al, [XAML]
 				; Compare 'examine index' to hex data.
-	mov al, [XAMH]
-				; Not less, so no more data to output.
-	inc byte [XAML]
-	jne MOD8CHK		; Increment 'examine index'.
-	inc byte [XAMH]
+;	mov al, [XAMH]
+	; TODO Conditional jump
+;	jmp TONEXTITEM		; Not less, so no more data to output.
+;	inc byte [XAML]
+;	jne MOD8CHK		; Increment 'examine index'.
+;	inc byte [XAMH]
 
 MOD8CHK:
-	mov rax, [XAM]		; Check low-order 'examine index' byte
-	and al, 0x07		; For MOD 8 = 0
+;	mov rax, rdx		; Check low-order 'examine index' byte
+;	and al, 0x07		; For MOD 8 = 0
 	jmp NXTPRNT		; Always taken.
 
 PRBYTE:
