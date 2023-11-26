@@ -5,7 +5,7 @@
 ; A = AL
 ; X = RBX
 ; Y = RCX
-; Variable XAM = RSI
+; Variable XAM = RDX
 ;
 ; Notes - Capital letter are expected for input
 ; The original variables XAML and XAMH are not used
@@ -19,15 +19,14 @@ ORG 0x001E0000
 RESET:
 				; Clear decimal arithmetic mode.
 				;
-				; Mask for DSP data direction register.
+	mov cl, 0x7F		; Mask for DSP data direction register.
 				; Set it up.
 				; KBD and DSP control register mask.
 				; Enable interrupt, set CA1, CB1, for
-				; positive edge sense/output mode.
+				;  positive edge sense/output mode.
 
-	; The next lines are all we need for the RESET on x86-64
+	; The remaining lines are all we need for the RESET on x86-64
 	cld			; Clear direction flag
-	mov al, escape		; Set so NOTCR sends us to ESCAPE
 	mov rdi, temp_string	; Base address of input (IN)
 
 NOTCR:
@@ -93,14 +92,17 @@ NEXTITEM:
 	cmp al, enter_key	; CR?
 	je GETLINE		; Yes, done this line.
 	cmp al, '.'		; "."?
+	; TODO - check value. On Apple 1 '.' is AE
 	jc BLSKIP		; Skip delimiter.
 	je SETMODE		; Set BLOCK XAM mode.
 	cmp al, ':'		; ":"?
+	; TODO - check value. On Apple 1 ':' is BA
 	je SETSTOR		; Yes, set STOR mode.
 	cmp al, 'r'		; "R"?
 	je RUN			; Yes, run user program.
-	mov [L], bl		; $0 -> L.
-	mov [H], bl		; and H.
+	xor rdx, rdx
+;	mov [L], bl		; $0 -> L.
+;	mov [H], bl		; and H.
 	mov [YSAV], cl		; Save Y for comparison.
 NEXTHEX:
 	mov al, [rdi+rcx]	; Get character for hex test.
@@ -112,20 +114,22 @@ NEXTHEX:
 	jc NOTHEX		; No, character not hex.
 
 	; To be removed
-	and al, 0x0F
+;	and al, 0x0F
 DIG:
 	; Debug
-	call dump_al
+;	call dump_al
 
 	shl al, 4		; Hex digit to MSD of A
 	mov bx, 0x04		; Shift count.
 HEXSHIFT:
 	shl al, 1		; Hex digit left, MSB to carry.
-	rol byte [L], 1		; Rotate into LSD.
-	rol byte [H], 1		; Rotate into MSD's.
+	rcl rdx, 1
+;	rol byte [L], 1		; Rotate into LSD.
+;	rol byte [H], 1		; Rotate into MSD's.
 	dec bl			; Done 4 shifts?
 	jne HEXSHIFT		; No, loop.
 	inc cl			; Advance text index.
+	; TODO conditional jump like original?
 	jmp NEXTHEX		; Always taken. Check next character for hex.
 NOTHEX:
 	cmp cl, byte [YSAV]	; Check if L, H empty (no hex digits).
@@ -157,7 +161,7 @@ NXTPRNT:
 	mov al, newline		; CR.
 	call ECHO		; Output it.
 	; The next 4 lines differ due to running with 64-bit addresses
-	mov rax, [XAM]		; 'Examine index' high-order byte
+	mov rax, rdx		; 'Examine index' high-order byte
 	call dump_rax		; Output it in hex format.
 				; Low-order 'examine index' byte
 				; Output it in hex format.
