@@ -5,7 +5,11 @@
 ; A = AL
 ; X = RBX
 ; Y = RCX
-; Variable XAM = RDX
+; Variables
+; XAML & XAMH = R13
+; STL & STH = R14
+; L & H = R15
+; IN = RDI
 ;
 ; Notes - Capital letter are expected for input
 ; The original variables XAML and XAMH are not used
@@ -87,6 +91,13 @@ SETSTOR:
 	shl al, 1		; Leaves $7B if setting STOR mode
 SETMODE:
 	mov [MODE], al		; $00 = XAM, $7B = STOR, $AE = BLOK XAM
+; DEBUG start to dump MODE
+;	push ax
+;	mov al, 'M'
+;	call ECHO
+;	pop ax
+;	call dump_al
+; DEBUG end
 BLSKIP:
 	inc cl			; Advance text index.
 NEXTITEM:
@@ -94,7 +105,7 @@ NEXTITEM:
 	cmp al, enter_key	; CR?
 	je GETLINE		; Yes, done this line.
 	cmp al, '.'		; "."?
-	; TODO - check value. On Apple 1 '.' is AE
+	; TODO - On Apple 1 '.' is AE. On BareMetal is 2E
 	jc BLSKIP		; Skip delimiter.
 	je SETMODE		; Set BLOCK XAM mode.
 	cmp al, ':'		; ":"?
@@ -102,9 +113,8 @@ NEXTITEM:
 	je SETSTOR		; Yes, set STOR mode.
 	cmp al, 'r'		; "R"?
 	je RUN			; Yes, run user program.
-	xor rdx, rdx
-;	mov [L], bl		; $0 -> L.
-;	mov [H], bl		; and H.
+	xor r15, r15		; $0 -> L.
+				; and H.
 	mov [YSAV], cl		; Save Y for comparison.
 NEXTHEX:
 	mov al, [rdi+rcx]	; Get character for hex test.
@@ -122,13 +132,12 @@ DIG:
 	mov bx, 0x04		; Shift count.
 HEXSHIFT:
 	shl al, 1		; Hex digit left, MSB to carry.
-	rcl rdx, 1
-;	rol byte [L], 1		; Rotate into LSD.
-;	rol byte [H], 1		; Rotate into MSD's.
+	rcl r15, 1		; Rotate into LSD.
+				; Rotate into MSD's.
 	dec bl			; Done 4 shifts?
 	jne HEXSHIFT		; No, loop.
 	inc cl			; Advance text index.
-	; TODO conditional jump like original?
+	; TODO conditional jump like original
 	jmp NEXTHEX		; Always taken. Check next character for hex.
 NOTHEX:
 	cmp cl, byte [YSAV]	; Check if L, H empty (no hex digits).
@@ -136,7 +145,7 @@ NOTHEX:
 				; Test MODE byte.
 	; TODO conditional jump
 	jmp NOTSTOR		; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
-	mov al, dl;[L]		; LSD's of hex data.
+;	mov al, dl;[L]		; LSD's of hex data.
 				; Store at current 'store index'
 				; Increment store index.
 				; Get next item. (no carry).
@@ -163,7 +172,7 @@ NXTPRNT:
 	mov al, newline		; CR.
 	call ECHO		; Output it.
 	; The next 4 lines differ due to running with 64-bit addresses
-	mov rax, rdx		; 'Examine index' high-order byte
+	mov rax, r15		; 'Examine index' high-order byte
 	call dump_rax		; Output it in hex format.
 				; Low-order 'examine index' byte
 				; Output it in hex format.
@@ -172,7 +181,7 @@ NXTPRNT:
 PRDATA:
 	mov al, ' '		; Blank.
 	call ECHO		; Output it.
-	mov al, byte [rdx+rbx]	; Get data byte at `examine index`
+	mov al, byte [r15+rbx]	; Get data byte at `examine index`
 	call PRBYTE		; Output it in hex format.
 	jmp GETLINE
 XAMNEXT:
