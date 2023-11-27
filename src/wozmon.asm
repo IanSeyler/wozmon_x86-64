@@ -32,11 +32,9 @@ RESET:
 				; KBD and DSP control register mask.
 				; Enable interrupt, set CA1, CB1, for
 				;  positive edge sense/output mode.
-
 	; The remaining lines are all we need for the RESET on x86-64
 	cld			; Clear direction flag
 	mov rdi, temp_string	; Base address of input (IN)
-
 NOTCR:
 	cmp al, backspace_key	; Backspace?
 	je BACKSPACE		; Yes.
@@ -44,22 +42,18 @@ NOTCR:
 	je ESCAPE		; Yes.
 	inc cl			; Advance text index.
 	jns NEXTCHAR		; Auto ESC if > 127.
-
 ESCAPE:
 	mov al, newline
 	call ECHO
 	mov al, prompt		; "\".
 	call ECHO		; Output it.
-
 GETLINE:
 	mov al, newline		; CR.
 	call ECHO		; Output it.
 	mov rcx, 1		; Initialize text index.
-
 BACKSPACE:
 	dec cl			; Back up text index.
 	js GETLINE		; Beyond start of line, reinitialize.
-
 	; The next six lines are just for BareMetal
 	mov al, backspace	; Move back by one character
 	call output_char
@@ -67,7 +61,6 @@ BACKSPACE:
 	call output_char
 	mov al, backspace
 	call output_char	; Move back by one character again
-
 NEXTCHAR:
 	call [b_input]		; Key ready?
 	jnc NEXTCHAR		; Loop until ready.
@@ -76,11 +69,9 @@ NEXTCHAR:
 	call ECHO		; Display character.
 	cmp al, enter_key	; CR?
 	jne NOTCR		; No.
-
 	; The next two lines are just for BareMetal
 	mov al, newline
 	call ECHO
-
 	mov cl, 0xFF		; Reset text index.
 	mov al, 0x00		; For XAM mode.
 	mov bx, ax		; 0 -> X.
@@ -88,13 +79,6 @@ SETSTOR:
 	shl al, 1		; Leaves $7B if setting STOR mode
 SETMODE:
 	mov [MODE], al		; $00 = XAM, $7B = STOR, $AE = BLOK XAM
-; DEBUG start to dump MODE
-;	push ax
-;	mov al, 'M'
-;	call ECHO
-;	pop ax
-;	call dump_al
-; DEBUG end
 BLSKIP:
 	inc cl			; Advance text index.
 NEXTITEM:
@@ -200,18 +184,10 @@ ECHO:
 	call output_char	; Output character.
 	ret			; Return.
 
-align 16
 ; Variables
-XAM		dq 0x0000000000000000
-;XAML		db 0x00
-;XAMH		db 0x00
-;STL		db 0x00
-;STH		db 0x00
-;L		db 0x00
-;H		db 0x00
 YSAV		db 0x00
 MODE		db 0x00
-
+tchar		db 0x00
 
 ; Constants
 prompt		equ '\'
@@ -226,21 +202,6 @@ backspace_key	equ 0x0E
 
 
 ; -----------------------------------------------------------------------------
-; output -- Displays text
-;  IN:	RSI = message location (zero-terminated string)
-; OUT:	All registers preserved
-output:
-	push rcx
-
-	call string_length
-	call [b_output]
-
-	pop rcx
-	ret
-; -----------------------------------------------------------------------------
-
-
-; -----------------------------------------------------------------------------
 ; output_char -- output a single character
 output_char:
 	push rsi
@@ -251,68 +212,6 @@ output_char:
 	mov rcx, 1
 	call [b_output]
 
-	pop rcx
-	pop rsi
-	ret
-; -----------------------------------------------------------------------------
-
-
-; -----------------------------------------------------------------------------
-; string_length -- Return length of a string
-;  IN:	RSI = string location
-; OUT:	RCX = length (not including the NULL terminator)
-;	All other registers preserved
-string_length:
-	push rdi
-	push rax
-
-	xor ecx, ecx
-	xor eax, eax
-	mov rdi, rsi
-	not rcx
-	repne scasb			; compare byte at RDI to value in AL
-	not rcx
-	dec rcx
-
-	pop rax
-	pop rdi
-	ret
-; -----------------------------------------------------------------------------
-
-
-; -----------------------------------------------------------------------------
-; hex_string_to_int -- Convert up to 8 hexascii to bin
-;  IN:	RSI = Location of hex asciiz string
-; OUT:	RAX = binary value of hex string
-;	All other registers preserved
-hex_string_to_int:
-	push rsi
-	push rcx
-	push rbx
-
-	xor ebx, ebx
-hex_string_to_int_loop:
-	lodsb
-	mov cl, 4
-	cmp al, 'a'
-	jb hex_string_to_int_ok
-	sub al, 0x20				; convert to upper case if alpha
-hex_string_to_int_ok:
-	sub al, '0'				; check if legal
-	jc hex_string_to_int_exit		; jump if out of range
-	cmp al, 9
-	jle hex_string_to_int_got		; jump if number is 0-9
-	sub al, 7				; convert to number from A-F or 10-15
-	cmp al, 15				; check if legal
-	ja hex_string_to_int_exit		; jump if illegal hex char
-hex_string_to_int_got:
-	shl rbx, cl
-	or bl, al
-	jmp hex_string_to_int_loop
-hex_string_to_int_exit:
-	mov rax, rbx				; integer value stored in RBX, move to RAX
-
-	pop rbx
 	pop rcx
 	pop rsi
 	ret
@@ -347,9 +246,6 @@ dump_al:
 	call PRBYTE
 	ret
 ; -----------------------------------------------------------------------------
-
-
-tchar: db 0, 0, 0		; Used by output_char
 
 align 16
 temp_string:
