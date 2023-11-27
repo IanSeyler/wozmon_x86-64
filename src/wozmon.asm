@@ -111,8 +111,8 @@ NEXTITEM:
 	cmp al, ':'		; ":"?
 	; TODO - check value. On Apple 1 ':' is BA
 	je SETSTOR		; Yes, set STOR mode.
-	cmp al, 'r'		; "R"?
-	je RUN			; Yes, run user program.
+;	cmp al, 'R'		; "R"?
+;	je RUN			; Yes, run user program.
 	xor r15, r15		; $0 -> L.
 				; and H.
 	mov [YSAV], cl		; Save Y for comparison.
@@ -124,11 +124,8 @@ NEXTHEX:
 	add al, 0x89		; Map letter "A"-"F" to $FA-$FF
 	cmp al, 0xFA		; Hex letter?
 	jc NOTHEX		; No, character not hex.
-
-	; To be removed
-;	and al, 0x0F
 DIG:
-	shl al, 4		; Hex digit to MSD of A
+	shl al, 4		; Hex digit to MSD of A.
 	mov bx, 0x04		; Shift count.
 HEXSHIFT:
 	shl al, 1		; Hex digit left, MSB to carry.
@@ -137,15 +134,14 @@ HEXSHIFT:
 	dec bl			; Done 4 shifts?
 	jne HEXSHIFT		; No, loop.
 	inc cl			; Advance text index.
-	; TODO conditional jump like original
-	jmp NEXTHEX		; Always taken. Check next character for hex.
+	jne NEXTHEX		; Always taken. Check next character for hex.
 NOTHEX:
 	cmp cl, byte [YSAV]	; Check if L, H empty (no hex digits).
 	je ESCAPE		; Yes, generate ESC sequence.
 				; Test MODE byte.
 	; TODO conditional jump
 	jmp NOTSTOR		; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
-;	mov al, dl;[L]		; LSD's of hex data.
+				; LSD's of hex data.
 				; Store at current 'store index'
 				; Increment store index.
 				; Get next item. (no carry).
@@ -153,16 +149,17 @@ NOTHEX:
 
 TONEXTITEM:
 	jmp NEXTITEM		; Get next command item.
-
 RUN:
-;	call [XAM]		; Run at current XAM index.
+	call r13		; Run at current XAM index.
+	jmp GETLINE
 NOTSTOR:
-	jmp XAMNEXT		; B7 = 0 for XAM, 1 for BLOCK XAM
-	mov bx, 0x02		; Byte count.
+	cmp byte [MODE], 0
+	je XAMNEXT		; B7 = 0 for XAM, 1 for BLOCK XAM
+				; Byte count.
 SETADR:
 				; Copy hex data to
-				; 'store index'.
-				; And to 'XAM index'.
+	mov r14, r15		; 'store index'.
+	mov r13, r15		; And to 'XAM index'.
 				; Next of 2 bytes.
 				; Loop unless X = 0.
 NXTPRNT:
@@ -183,25 +180,19 @@ PRDATA:
 	call ECHO		; Output it.
 	mov al, byte [r15+rbx]	; Get data byte at `examine index`
 	call PRBYTE		; Output it in hex format.
+	; TODO remove this
 	jmp GETLINE
 XAMNEXT:
-				; 0 -> MODE (XAM mode).
-;	mov al, [rdx]
-;	inc rdx
-;	mov al, [XAML]
-				; Compare 'examine index' to hex data.
-;	mov al, [XAMH]
+	mov byte [MODE], 0x00	; 0 -> MODE (XAM mode).
+	cmp r13, r15		; Compare 'examine index' to hex data.
 	; TODO Conditional jump
-;	jmp TONEXTITEM		; Not less, so no more data to output.
-;	inc byte [XAML]
+;	jl TONEXTITEM		; Not less, so no more data to output.
+;	inc r15
 ;	jne MOD8CHK		; Increment 'examine index'.
-;	inc byte [XAMH]
-
 MOD8CHK:
-;	mov rax, rdx		; Check low-order 'examine index' byte
+;	mov al, r13b		; Check low-order 'examine index' byte
 ;	and al, 0x07		; For MOD 8 = 0
 	jmp NXTPRNT		; Always taken.
-
 PRBYTE:
 	push ax			; Save A for LSD.
 	shr al, 4		; MSD to LSD position.
