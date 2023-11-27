@@ -48,7 +48,7 @@ NOTCR:
 ESCAPE:
 	mov al, newline
 	call ECHO
-	mov al, prompt		; "\"
+	mov al, prompt		; "\".
 	call ECHO		; Output it.
 
 GETLINE:
@@ -77,18 +77,13 @@ NEXTCHAR:
 	cmp al, enter_key	; CR?
 	jne NOTCR		; No.
 
-; DEBUG Start - This just echos what was input
-;	mov al, 0x00
-;	mov [rdi+rcx], al
-;	mov rsi, temp_string
-;	call output
-;	jmp GETLINE
-; DEBUG end
+	; The next two lines are just for BareMetal
+	mov al, newline
+	call ECHO
 
 	mov cl, 0xFF		; Reset text index.
 	mov al, 0x00		; For XAM mode.
 	mov bx, ax		; 0 -> X.
-
 SETSTOR:
 	shl al, 1		; Leaves $7B if setting STOR mode
 SETMODE:
@@ -144,8 +139,8 @@ NOTHEX:
 	; TODO conditional jump
 	jmp NOTSTOR		; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
 				; LSD's of hex data.
-				; Store at current 'store index'
-				; Increment store index.
+	mov [r14], al		; Store at current 'store index'
+	inc r14			; Increment store index.
 				; Get next item. (no carry).
 				; Add carry to 'store index' high order.
 
@@ -156,7 +151,7 @@ RUN:
 	jmp GETLINE
 NOTSTOR:
 	cmp byte [MODE], 0
-	je XAMNEXT		; B7 = 0 for XAM, 1 for BLOCK XAM
+	jne XAMNEXT		; B7 = 0 for XAM, 1 for BLOCK XAM
 				; Byte count.
 SETADR:
 				; Copy hex data to
@@ -165,35 +160,29 @@ SETADR:
 				; Next of 2 bytes.
 				; Loop unless X = 0.
 NXTPRNT:
-;	jne PRDATA		; NE means no address to print.
-	mov al, newline
-	call ECHO
+	jnz PRDATA		; NE means no address to print.
 	mov al, newline		; CR.
 	call ECHO		; Output it.
 	; The next 4 lines differ due to running with 64-bit addresses
-	mov rax, r15		; 'Examine index' high-order byte
+	mov rax, r13		; 'Examine index' high-order byte.
 	call dump_rax		; Output it in hex format.
-				; Low-order 'examine index' byte
+				; Low-order 'examine index' byte.
 				; Output it in hex format.
 	mov al, ':'		; ":".
 	call ECHO		; Output it.
 PRDATA:
 	mov al, ' '		; Blank.
 	call ECHO		; Output it.
-	mov al, byte [r15+rbx]	; Get data byte at `examine index`
+	mov al, byte [r13]	; Get data byte at 'examine index'.
 	call PRBYTE		; Output it in hex format.
-	; TODO remove this
-	jmp GETLINE
 XAMNEXT:
 	mov byte [MODE], 0x00	; 0 -> MODE (XAM mode).
 	cmp r13, r15		; Compare 'examine index' to hex data.
-	; TODO Conditional jump
-;	jl TONEXTITEM		; Not less, so no more data to output.
-;	inc r15
-;	jne MOD8CHK		; Increment 'examine index'.
+	jge TONEXTITEM		; Not less, so no more data to output.
+	inc r13			; Increment 'examine index'.
 MOD8CHK:
-;	mov al, r13b		; Check low-order 'examine index' byte
-;	and al, 0x07		; For MOD 8 = 0
+	mov al, r13b		; Check low-order 'examine index' byte
+	and al, 0x07		; For MOD 8 = 0
 	jmp NXTPRNT		; Always taken.
 PRBYTE:
 	push ax			; Save A for LSD.
@@ -215,12 +204,12 @@ ECHO:
 align 16
 ; Variables
 XAM		dq 0x0000000000000000
-XAML		db 0x00
-XAMH		db 0x00
-STL		db 0x00
-STH		db 0x00
-L		db 0x00
-H		db 0x00
+;XAML		db 0x00
+;XAMH		db 0x00
+;STL		db 0x00
+;STH		db 0x00
+;L		db 0x00
+;H		db 0x00
 YSAV		db 0x00
 MODE		db 0x00
 
