@@ -102,11 +102,11 @@ NEXTITEM:
 	cmp al, enter_key	; CR?
 	je GETLINE		; Yes, done this line.
 	cmp al, '.'		; "."?
-	; TODO - On Apple 1 '.' is AE. On BareMetal is 2E
+	; On Apple 1 '.' is AE. On BareMetal is 2E
 	jc BLSKIP		; Skip delimiter.
 	je SETMODE		; Set BLOCK XAM mode.
 	cmp al, ':'		; ":"?
-	; TODO - check value. On Apple 1 ':' is BA
+	; On Apple 1 ':' is BA. On BareMetal is 3A
 	je SETSTOR		; Yes, set STOR mode.
 ;	cmp al, 'R'		; "R"?
 ;	je RUN			; Yes, run user program.
@@ -135,15 +135,14 @@ HEXSHIFT:
 NOTHEX:
 	cmp cl, byte [YSAV]	; Check if L, H empty (no hex digits).
 	je ESCAPE		; Yes, generate ESC sequence.
-				; Test MODE byte.
-	; TODO conditional jump
-	jmp NOTSTOR		; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
+	mov al, byte [MODE]	; Test MODE byte.
+	cmp al, 0x74
+	jne NOTSTOR		; B6 = 0 for STOR, 1 for XAM and BLOCK XAM
 				; LSD's of hex data.
-	mov [r14], al		; Store at current 'store index'
+	mov [r14], r15b		; Store at current 'store index'
 	inc r14			; Increment store index.
 				; Get next item. (no carry).
 				; Add carry to 'store index' high order.
-
 TONEXTITEM:
 	jmp NEXTITEM		; Get next command item.
 RUN:
