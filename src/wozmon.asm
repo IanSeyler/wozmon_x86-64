@@ -1,18 +1,22 @@
 ; wozmon x86-64
-; Converted by Ian Seyler (ian@seyler.me)
+;
+; A complete rewrite of Steve Wozniak's system monitor from 1976 for the Apple-1
+; Converted from 6502 to x86-64 by Ian Seyler (ian@seyler.me)
 ;
 ; 6502 to x86-64 register mapping
 ; A = AL
 ; X = RBX
 ; Y = RCX
+;
 ; Variables
+; The single byte variables that are used as a pair to denote a memory address
+; are consolidated to a single x86-64 register instead.
 ; XAML & XAMH = R13
 ; STL & STH = R14
 ; L & H = R15
 ; IN = RDI
 ;
 ; Notes - Capital letter are expected for input
-; The original variables XAML and XAMH are not used
 
 
 BITS 64
@@ -80,8 +84,6 @@ NEXTCHAR:
 ;	call output
 ;	jmp GETLINE
 ; DEBUG end
-
-; Here be dragons!
 
 	mov cl, 0xFF		; Reset text index.
 	mov al, 0x00		; For XAM mode.
