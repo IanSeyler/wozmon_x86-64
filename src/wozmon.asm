@@ -92,8 +92,8 @@ NEXTITEM:
 	cmp al, ':'		; ":"?
 	; On Apple 1 ':' is BA. On BareMetal is 3A
 	je SETSTOR		; Yes, set STOR mode.
-;	cmp al, 'R'		; "R"?
-;	je RUN			; Yes, run user program.
+	cmp al, 'R'		; "R"?
+	je RUN			; Yes, run user program.
 	xor r15, r15		; $0 -> L.
 				; and H.
 	mov [YSAV], cl		; Save Y for comparison.
