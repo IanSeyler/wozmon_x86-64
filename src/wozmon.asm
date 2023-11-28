@@ -130,7 +130,7 @@ NOTHEX:
 TONEXTITEM:
 	jmp NEXTITEM		; Get next command item.
 RUN:
-	call r13		; Run at current XAM index.
+	call r14		; Run at current XAM index.
 	jmp GETLINE
 NOTSTOR:
 	cmp byte [MODE], 0
