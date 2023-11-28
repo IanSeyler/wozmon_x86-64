@@ -97,7 +97,7 @@ function baremetal_run {
 		-drive id=disk0,file="sys/disk.img",if=none,format=raw
 		-device ahci,id=ahci
 		-device ide-hd,drive=disk0,bus=ahci.0
-		-chardev stdio,id=char0,logfile="sys/serial.log",signal=off
+		-chardev stdio,id=char0,signal=off
 		-serial chardev:char0
 	)
 
@@ -105,11 +105,6 @@ function baremetal_run {
 	"${cmd[@]}"
 }
 
-function baremetal_bnr {
-	baremetal_build
-	baremetal_install
-	baremetal_run
-}
 
 function baremetal_help {
 	echo "BareMetal Wozmon Script"
@@ -119,7 +114,6 @@ function baremetal_help {
 	echo "build    - Build source code"
 	echo "install  - Install binary to disk image"
 	echo "run      - Run the OS via QEMU"
-	echo "bnr      - Build 'n Run"
 }
 
 if [ $# -eq 0 ]; then
@@ -137,13 +131,7 @@ elif [ $# -eq 1 ]; then
 		baremetal_help
 	elif [ "$1" == "run" ]; then
 		baremetal_run
-	elif [ "$1" == "bnr" ]; then
-		baremetal_bnr
 	else
 		echo "Invalid argument '$1'"
-	fi
-elif [ $# -eq 2 ]; then
-	if [ "$1" == "install" ]; then
-		baremetal_install $2
 	fi
 fi
