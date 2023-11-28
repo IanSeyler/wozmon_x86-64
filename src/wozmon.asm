@@ -135,7 +135,7 @@ NOTHEX:
 TONEXTITEM:
 	jmp NEXTITEM		; Get next command item.
 RUN:
-	call r14		; Run at current XAM index.
+	call r13		; Run at current XAM index.
 	jmp GETLINE
 NOTSTOR:
 	cmp byte [MODE], 0
@@ -151,11 +151,18 @@ NXTPRNT:
 	jnz PRDATA		; NE means no address to print.
 	mov al, newline		; CR.
 	call ECHO		; Output it.
-	; The next 4 lines differ due to running with 64-bit addresses
-	mov rax, r13		; 'Examine index' high-order byte.
-	call dump_rax		; Output it in hex format.
+				; 'Examine index' high-order byte.
+				; Output it in hex format.
 				; Low-order 'examine index' byte.
 				; Output it in hex format.
+	; The next 6 lines differ due to running with 64-bit addresses
+	mov rax, r13
+	mov bl, 8
+NEXTADDR:
+	rol rax, 8
+	call PRBYTE
+	dec bl
+	jnz NEXTADDR
 	mov al, ':'		; ":".
 	call ECHO		; Output it.
 PRDATA:
@@ -224,35 +231,6 @@ output_char:
 	ret
 ; -----------------------------------------------------------------------------
 
-
-; -----------------------------------------------------------------------------
-; dump_(rax|eax|ax|al) -- Dump content of RAX, EAX, AX, or AL
-;  IN:	RAX/EAX/AX/AL = content to dump
-; OUT:	Nothing, all registers preserved
-dump_rax:
-	rol rax, 8
-	call dump_al
-	rol rax, 8
-	call dump_al
-	rol rax, 8
-	call dump_al
-	rol rax, 8
-	call dump_al
-	rol rax, 32
-dump_eax:
-	rol eax, 8
-	call dump_al
-	rol eax, 8
-	call dump_al
-	rol eax, 16
-dump_ax:
-	rol ax, 8
-	call dump_al
-	rol ax, 8
-dump_al:
-	call PRBYTE
-	ret
-; -----------------------------------------------------------------------------
 
 align 16
 IN:
