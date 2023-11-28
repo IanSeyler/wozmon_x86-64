@@ -1,28 +1,33 @@
-; wozmon x86-64
+; =============================================================================
+; Wozmon x86-64
 ;
-; A complete rewrite of Steve Wozniak's system monitor from 1976 for the Apple-1
+; A complete instruction by instruction rewrite of Steve Wozniak's system
+; monitor from 1976 for the Apple-1
+;
 ; Converted from 6502 to x86-64 by Ian Seyler (ian@seyler.me)
 ;
-; 6502 to x86-64 register mapping
+; 6502 to x86-64 register mapping:
 ; A = AL
 ; X = RBX
 ; Y = RCX
 ;
-; Variables
-; The single byte variables that are used as a pair to denote a memory address
-; are consolidated to a single x86-64 register instead.
+; Variables:
+; The single byte variables that are used as a pair to denote memory addresses
+; are consolidated into x86-64 registers instead.
 ; XAML & XAMH = R13
 ; STL & STH = R14
 ; L & H = R15
 ; IN = RDI
 ;
-; Notes - Capital letter are expected for input
+; Notes:
+; Capital letter are expected for input
+; =============================================================================
 
 
-BITS 64
-ORG 0x001E0000
+BITS 64				; Specify 64-bit
+ORG 0x001E0000			; Wozmon expects to be loaded at this address
 
-%include 'api/libBareMetal.asm'
+%include 'api/libBareMetal.asm'	; Needed for kernel I/O calls
 
 RESET:
 				; Clear decimal arithmetic mode.
@@ -34,7 +39,7 @@ RESET:
 				;  positive edge sense/output mode.
 	; The remaining lines are all we need for the RESET on x86-64
 	cld			; Clear direction flag
-	mov rdi, temp_string	; Base address of input (IN)
+	mov rdi, IN		; Base address of input (IN)
 NOTCR:
 	cmp al, backspace_key	; Backspace?
 	je BACKSPACE		; Yes.
@@ -202,7 +207,9 @@ backspace_key	equ 0x0E
 
 
 ; -----------------------------------------------------------------------------
-; output_char -- output a single character
+; output_char -- Output a single character
+; IN:	RSI = String Address
+; OUT:	Nothing, all registers preserved
 output_char:
 	push rsi
 	push rcx
@@ -220,7 +227,7 @@ output_char:
 
 ; -----------------------------------------------------------------------------
 ; dump_(rax|eax|ax|al) -- Dump content of RAX, EAX, AX, or AL
-;  IN:	RAX = content to dump
+;  IN:	RAX/EAX/AX/AL = content to dump
 ; OUT:	Nothing, all registers preserved
 dump_rax:
 	rol rax, 8
@@ -248,7 +255,7 @@ dump_al:
 ; -----------------------------------------------------------------------------
 
 align 16
-temp_string:
+IN:
 
 ; =============================================================================
 ; EOF
