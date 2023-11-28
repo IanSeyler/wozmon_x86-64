@@ -23,11 +23,11 @@ In Linux this can be completed with the following command:
 
 ## Initial configuration
 	
-		git clone https://github.com/IanSeyler/wozmon_x86-64.git
-		cd wozmon_x86-64
-		./wozmon.sh setup
+	git clone https://github.com/IanSeyler/wozmon_x86-64.git
+	cd wozmon_x86-64
+	./wozmon.sh setup
 	
-	`wozmon.sh setup` automatically runs the build and install functions. Once the setup is complete you can execute `wozmon.sh run` to verify that everything installed correctly.
+`wozmon.sh setup` automatically runs the build and install functions. Once the setup is complete you can execute `wozmon.sh run` to verify that everything installed correctly.
 
 
 ## Memory Layout
