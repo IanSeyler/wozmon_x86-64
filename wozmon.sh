@@ -89,6 +89,11 @@ function baremetal_install {
 
 function baremetal_run {
 	echo "Starting QEMU..."
+	echo ""
+	echo "Keyboard input goes into the QEMU window"
+	echo ""
+	echo "Serial input/output is below (The actual 'screen')"
+	echo "=================================================="
 	cmd=( qemu-system-x86_64
 		-machine q35
 		-name "BareMetal OS"
@@ -97,8 +102,7 @@ function baremetal_run {
 		-drive id=disk0,file="sys/disk.img",if=none,format=raw
 		-device ahci,id=ahci
 		-device ide-hd,drive=disk0,bus=ahci.0
-		-chardev stdio,id=char0,signal=off
-		-serial chardev:char0
+		-serial stdio
 	)
 
 	#execute the cmd string
