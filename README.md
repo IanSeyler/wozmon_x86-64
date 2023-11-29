@@ -5,6 +5,8 @@
 
 An instruction by instruction rewrite of Wozmon in x86-64 for the BareMetal kernel. Minor changes were made, mainly to deal with 64-bit addresses.
 
+The Woz Monitor, also known as Wozmon, is a simple memory monitor and was the system software located in the 256 byte PROM on the Apple-1 from 1976. Wozmon is used to inspect and modify memory contents or to execute programs already located in memory.
+
 <p align="center">
 	<img src="img/ScreenShot.png"></img>
 </p>
