@@ -11,6 +11,8 @@ The Woz Monitor, also known as Wozmon, is a simple memory monitor and was the sy
 	<img src="img/ScreenShot.png"></img>
 </p>
 
+The source code for the original Wozmon can be found [here](https://github.com/jefftranter/6502/blob/master/asm/wozmon/wozmon.s).
+
 
 ## Prerequisites
 
