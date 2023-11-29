@@ -42,7 +42,7 @@ The BareMetal kernel uses the first 2MiB of RAM. Wozmon runs within the BareMeta
 
 ## Usage
 
-Wozmon operates on a line-by-line basis and adheres to the same syntax as the original Wozmon on the Apple-1. The commands comprise of memory addresses, specifying whether to perform a read, write, or execute operation on them. In the following examples, [ENTER] denotes the action of pressing the enter key after inputting text. All other lines are output from the monitor.
+Wozmon operates on a line-by-line basis and adheres to the same syntax as the original Wozmon on the Apple-1. The commands comprise of memory addresses, specifying whether to perform a read, write, or execute operation on them. In the following examples, `[ENTER]` denotes the action of pressing the enter key after inputting text. All other lines are output from the monitor.
 
 * On startup a `\` will be displayed.
 
