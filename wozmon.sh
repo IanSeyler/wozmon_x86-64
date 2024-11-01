@@ -65,7 +65,7 @@ function baremetal_build {
 	build_dir "os/Pure64"
 	build_dir "os/BareMetal"
 
-	mv "os/Pure64/bin/mbr.sys" "${OUTPUT_DIR}/mbr.sys"
+	mv "os/Pure64/bin/bios.sys" "${OUTPUT_DIR}/bios.sys"
 	mv "os/Pure64/bin/pure64.sys" "${OUTPUT_DIR}/pure64.sys"
 	mv "os/Pure64/bin/pure64-debug.txt" "${OUTPUT_DIR}/pure64-debug.txt"
 	mv "os/BareMetal/bin/kernel.sys" "${OUTPUT_DIR}/kernel.sys"
@@ -82,7 +82,7 @@ function baremetal_install {
 		cat pure64.sys kernel.sys $1 > software.sys
 	fi
 
-	dd if=mbr.sys of=disk.img conv=notrunc > /dev/null 2>&1
+	dd if=bios.sys of=disk.img conv=notrunc > /dev/null 2>&1
 	dd if=software.sys of=disk.img bs=4096 seek=2 conv=notrunc > /dev/null 2>&1
 }
 

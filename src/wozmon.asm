@@ -29,7 +29,7 @@ ORG 0x001E0000			; Wozmon expects to be loaded at this address
 
 %include 'api/libBareMetal.asm'	; Needed for kernel I/O calls
 
-RESET:
+START:
 				; Clear decimal arithmetic mode.
 				;
 	mov cl, 0x7F		; Mask for DSP data direction register.
