@@ -22,18 +22,20 @@ function baremetal_setup {
 		wget -q https://raw.githubusercontent.com/ReturnInfinity/BareMetal/master/api/libBareMetal.asm
 	fi
 	cd ../..
-	
+
 	mkdir os
 
 	echo "Pulling code from GitHub..."
 	cd os
 	git clone https://github.com/ReturnInfinity/Pure64.git -q
 	git clone https://github.com/ReturnInfinity/BareMetal.git -q
-	cd ..
+	cd Pure64/src/boot
+	awk '{if($0 == "%define DAP_STARTSECTOR 262160") print "%define DAP_STARTSECTOR 16"; else print $0}' bios.asm > temp && mv temp bios.asm
+	cd ../../../..
 
 	echo "Creating disk image..."
 	cd sys
-	dd if=/dev/zero of=disk.img count=128 bs=1048576 > /dev/null 2>&1
+	dd if=/dev/zero of=disk.img count=2 bs=1048576 > /dev/null 2>&1
 	cd ..
 
 	baremetal_build
