@@ -66,8 +66,8 @@ function baremetal_build {
 	build_dir "os/BareMetal"
 
 	mv "os/Pure64/bin/bios.sys" "${OUTPUT_DIR}/bios.sys"
-	mv "os/Pure64/bin/pure64.sys" "${OUTPUT_DIR}/pure64.sys"
-	mv "os/Pure64/bin/pure64-debug.txt" "${OUTPUT_DIR}/pure64-debug.txt"
+	mv "os/Pure64/bin/pure64-bios.sys" "${OUTPUT_DIR}/pure64-bios.sys"
+	mv "os/Pure64/bin/pure64-bios-debug.txt" "${OUTPUT_DIR}/pure64-bios-debug.txt"
 	mv "os/BareMetal/bin/kernel.sys" "${OUTPUT_DIR}/kernel.sys"
 	mv "os/BareMetal/bin/kernel-debug.txt" "${OUTPUT_DIR}/kernel-debug.txt"
 }
@@ -77,9 +77,9 @@ function baremetal_install {
 	echo "Building OS image..."
 
 	if [ "$#" -ne 1 ]; then
-		cat pure64.sys kernel.sys wozmon.bin > software.sys
+		cat pure64-bios.sys kernel.sys wozmon.bin > software.sys
 	else
-		cat pure64.sys kernel.sys $1 > software.sys
+		cat pure64-bios.sys kernel.sys $1 > software.sys
 	fi
 
 	dd if=bios.sys of=disk.img conv=notrunc > /dev/null 2>&1
@@ -103,6 +103,8 @@ function baremetal_run {
 		-device ahci,id=ahci
 		-device ide-hd,drive=disk0,bus=ahci.0
 		-serial stdio
+		# Enable monitor mode
+		-monitor telnet:localhost:8086,server,nowait
 	)
 
 	#execute the cmd string
