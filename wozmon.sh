@@ -42,10 +42,6 @@ function baremetal_setup {
 	cd Pure64/src/boot
 	awk '{if($0 == "%define DAP_STARTSECTOR 262160") print "%define DAP_STARTSECTOR 16"; else print $0}' bios.asm > temp && mv temp bios.asm
 	cd ../../../..
-	cd src/api
-#	awk '{if($0 == "%include 'ui/fonts/baremetal.fnt' ; 12x6") print ";%include 'ui/fonts/baremetal.fnt' ; 12x6"; else print $0}' ui.asm > temp && mv temp ui.asm
-	cd ../..
-	
 
 	echo "Creating disk image..."
 	cd sys
