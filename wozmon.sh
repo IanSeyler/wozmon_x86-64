@@ -24,14 +24,12 @@ function baremetal_setup {
 		curl -s -o ui.asm https://raw.githubusercontent.com/ReturnInfinity/BareMetal-Monitor/master/src/ui/ui.asm
 		cd ../ui/fonts
 		curl -s -o baremetal.fnt https://raw.githubusercontent.com/ReturnInfinity/BareMetal-Monitor/master/src/ui/fonts/ibm.fnt
-	#	cd ../..
 	else
 		wget -q https://raw.githubusercontent.com/ReturnInfinity/BareMetal/master/api/libBareMetal.asm
 		wget -q https://raw.githubusercontent.com/ReturnInfinity/BareMetal-Monitor/master/src/ui/ui.asm
 		cd ../ui/fonts
 		wget -q https://raw.githubusercontent.com/ReturnInfinity/BareMetal-Monitor/master/src/ui/fonts/baremetal.fnt
 		mv baremetal.fnt ibm.fnt
-	#	cd ../..
 	fi
 	cd ../../..
 
