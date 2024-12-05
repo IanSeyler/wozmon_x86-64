@@ -101,11 +101,6 @@ function baremetal_install {
 
 function baremetal_run {
 	echo "Starting QEMU..."
-	echo ""
-	echo "Keyboard input goes into the QEMU window"
-	echo ""
-	echo "Serial input/output is below (The actual 'screen')"
-	echo "=================================================="
 	cmd=( qemu-system-x86_64
 		-machine q35
 		-name "BareMetal OS"
@@ -114,8 +109,7 @@ function baremetal_run {
 		-drive id=disk0,file="sys/disk.img",if=none,format=raw
 		-device ahci,id=ahci
 		-device ide-hd,drive=disk0,bus=ahci.0
-		-serial stdio
-		# Enable monitor mode
+		# Enable monitor mode for external debugging
 		-monitor telnet:localhost:8086,server,nowait
 	)
 

@@ -20,7 +20,7 @@
 ; IN = RDI
 ;
 ; Notes:
-; Capital letter are expected for input
+; Capital letters are expected for input
 ; =============================================================================
 
 
@@ -62,12 +62,12 @@ BACKSPACE:
 	dec cl			; Back up text index.
 	js GETLINE		; Beyond start of line, reinitialize.
 	; The next six lines are just for BareMetal
-	mov al, backspace	; Move back by one character
+;	mov al, backspace	; Move back by one character
 	call output_char_woz
-	mov al, space		; Overwrite the old character with a space
-	call output_char_woz
-	mov al, backspace
-	call output_char_woz	; Move back by one character again
+;	mov al, space		; Overwrite the old character with a space
+;	call output_char_woz
+;	mov al, backspace
+;	call output_char_woz	; Move back by one character again
 NEXTCHAR:
 	call [b_input]		; Key ready?
 	jz NEXTCHAR		; Loop until ready.
@@ -217,17 +217,31 @@ backspace_key	equ 0x0E
 
 ; -----------------------------------------------------------------------------
 ; output_char_woz -- Output a single character
-; IN:	RSI = String Address
+; IN:	AL = Character
 ; OUT:	Nothing, all registers preserved
 output_char_woz:
 	push rsi
 	push rcx
 
+	cmp al, backspace
+	je output_char_woz_backspace
+	cmp al, newline
+	je output_char_woz_newline
 	mov rsi, tchar
 	mov [rsi], al
 	mov rcx, 1
-	call [b_output]
+	call output_char ;[b_output]
+	jmp output_char_woz_end
 
+output_char_woz_backspace:
+	call dec_cursor
+	jmp output_char_woz_end
+
+output_char_woz_newline:
+	call output_newline
+	jmp output_char_woz_end
+
+output_char_woz_end:
 	pop rcx
 	pop rsi
 	ret
