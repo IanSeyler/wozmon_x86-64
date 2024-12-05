@@ -68,7 +68,7 @@ BACKSPACE:
 	call output_char	; Move back by one character again
 NEXTCHAR:
 	call [b_input]		; Key ready?
-	jnc NEXTCHAR		; Loop until ready.
+	jz NEXTCHAR		; Loop until ready.
 				; Load character. B7 should be '1'.
 	mov [rdi+rcx], al	; Add to text buffer.
 	call ECHO		; Display character.
