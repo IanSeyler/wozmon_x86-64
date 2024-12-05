@@ -8,20 +8,31 @@ function baremetal_clean {
 	rm -rf os
 	rm -rf sys
 	rm -rf src/api
+	rm -rf src/ui
 }
 
 function baremetal_setup {
 	baremetal_clean
 
 	mkdir src/api
+	mkdir src/ui
+	mkdir src/ui/fonts
 	mkdir sys
 	cd src/api
 	if [ -x "$(command -v curl)" ]; then
 		curl -s -o libBareMetal.asm https://raw.githubusercontent.com/ReturnInfinity/BareMetal/master/api/libBareMetal.asm
+		curl -s -o ui.asm https://raw.githubusercontent.com/ReturnInfinity/BareMetal-Monitor/master/src/ui/ui.asm
+		cd ../ui/fonts
+		curl -s -o baremetal.fnt https://raw.githubusercontent.com/ReturnInfinity/BareMetal-Monitor/master/src/ui/fonts/baremetal.fnt
+	#	cd ../..
 	else
 		wget -q https://raw.githubusercontent.com/ReturnInfinity/BareMetal/master/api/libBareMetal.asm
+		wget -q https://raw.githubusercontent.com/ReturnInfinity/BareMetal-Monitor/master/src/ui/ui.asm
+		cd ../ui/fonts
+		wget -q https://raw.githubusercontent.com/ReturnInfinity/BareMetal-Monitor/master/src/ui/fonts/baremetal.fnt
+	#	cd ../..
 	fi
-	cd ../..
+	cd ../../..
 
 	mkdir os
 
@@ -32,6 +43,10 @@ function baremetal_setup {
 	cd Pure64/src/boot
 	awk '{if($0 == "%define DAP_STARTSECTOR 262160") print "%define DAP_STARTSECTOR 16"; else print $0}' bios.asm > temp && mv temp bios.asm
 	cd ../../../..
+	cd src/api
+#	awk '{if($0 == "%include 'ui/fonts/baremetal.fnt' ; 12x6") print ";%include 'ui/fonts/baremetal.fnt' ; 12x6"; else print $0}' ui.asm > temp && mv temp ui.asm
+	cd ../..
+	
 
 	echo "Creating disk image..."
 	cd sys

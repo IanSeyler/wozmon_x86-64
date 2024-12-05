@@ -30,6 +30,8 @@ ORG 0x001E0000			; Wozmon expects to be loaded at this address
 %include 'api/libBareMetal.asm'	; Needed for kernel I/O calls
 
 START:
+	; BareMetal only - Configure the screen
+	call ui_init
 				; Clear decimal arithmetic mode.
 				;
 	mov cl, 0x7F		; Mask for DSP data direction register.
@@ -61,11 +63,11 @@ BACKSPACE:
 	js GETLINE		; Beyond start of line, reinitialize.
 	; The next six lines are just for BareMetal
 	mov al, backspace	; Move back by one character
-	call output_char
+	call output_char_woz
 	mov al, space		; Overwrite the old character with a space
-	call output_char
+	call output_char_woz
 	mov al, backspace
-	call output_char	; Move back by one character again
+	call output_char_woz	; Move back by one character again
 NEXTCHAR:
 	call [b_input]		; Key ready?
 	jz NEXTCHAR		; Loop until ready.
@@ -193,7 +195,7 @@ PRHEX:
 ECHO:
 				; DA bit (B7) cleared yet?
 				; No, wait for display.
-	call output_char	; Output character.
+	call output_char_woz	; Output character.
 	ret			; Return.
 
 ; Variables
@@ -214,10 +216,10 @@ backspace_key	equ 0x0E
 
 
 ; -----------------------------------------------------------------------------
-; output_char -- Output a single character
+; output_char_woz -- Output a single character
 ; IN:	RSI = String Address
 ; OUT:	Nothing, all registers preserved
-output_char:
+output_char_woz:
 	push rsi
 	push rcx
 
@@ -231,6 +233,7 @@ output_char:
 	ret
 ; -----------------------------------------------------------------------------
 
+%include 'api/ui.asm'
 
 align 16
 IN:
