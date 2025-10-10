@@ -29,9 +29,14 @@ function baremetal_setup {
 	cd os
 	git clone https://github.com/ReturnInfinity/Pure64.git -q
 	git clone https://github.com/ReturnInfinity/BareMetal.git -q
+	# Adjust normal bios start sector load address
 	cd Pure64/src/boot
 	awk '{if($0 == "%define DAP_STARTSECTOR 262160") print "%define DAP_STARTSECTOR 16"; else print $0}' bios.asm > temp && mv temp bios.asm
-	cd ../../../..
+	cd ../../..
+	# Adjust BareMetal build option to use serial for output
+	cd BareMetal
+	sed -i '' 's/BUILDFLAGS=""/BUILDFLAGS="-dNO_LFB"/g' build.sh
+	cd ../..
 
 	echo "Creating disk image..."
 	cd sys
