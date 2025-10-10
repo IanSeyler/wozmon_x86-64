@@ -97,9 +97,11 @@ function baremetal_install {
 function baremetal_run {
 	echo "Starting QEMU..."
 	echo ""
-	echo "Keyboard input goes into the QEMU window"
+	echo "Keyboard input goes into the QEMU window so make sure it is in focus"
 	echo ""
-	echo "Serial input/output is below (The actual 'screen')"
+	echo "WOZMON expects upper-case characters!"
+	echo ""
+	echo "Input/output will be displayed below (The actual 'screen' via serial port)"
 	echo "=================================================="
 	cmd=( qemu-system-x86_64
 		-machine q35
